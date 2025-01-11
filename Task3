@@ -1,0 +1,38 @@
+# Export the schema without data
+mysqldump -u [username] -p --no-data [database_name] > schema.sql
+
+# Export data only
+mysqldump -u [username] -p --no-create-info [database_name] > data.sql
+
+# Import Schema into PostgreSQL
+psql -U [username] -d [database_name] -f schema.sql
+
+#Import Data into PostgreSQL
+psql -U [username] -d [database_name] -f data.sql
+
+#Using pgloader for Automated Migration
+LOAD DATABASE
+     FROM mysql://[username]:[password]@[host]/[mysql_database]
+     INTO postgresql://[username]:[password]@[host]/[postgres_database]
+
+WITH include no drop, create tables, create indexes, reset sequences
+SET maintenance_work_mem to '128MB', work_mem to '12MB'
+ALTER SCHEMA 'public' RENAME TO 'myschema'
+CAST type datetime to timestamp drop default drop not null using zero-dates-to-null,
+     type int when (= precision 11) to bigint using cast
+BEFORE LOAD DO $$ create schema if not exists myschema; $$;
+
+pgloader migration.load
+
+#####Data Integrity Checks
+Perform checks after migration:
+
+Row Counts
+
+sql
+Copy code
+-- MySQL
+SELECT COUNT(*) FROM [table_name];
+-- PostgreSQL
+SELECT COUNT(*) FROM [table_name];
+
